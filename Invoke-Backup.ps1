@@ -1,12 +1,20 @@
 <#
-.SYNOPSIS
+.Synopsis
 Invokes a backup operation.
 
-.OUTPUTS
+.Outputs
 None.
 
-.PARAMETER Config
+.Parameter Config
 The configuration to use for the backup.
+
+.Example
+Import-Module PsBackup
+$global:PsBackupSettings.BackupFolder = 'C:\backups'
+$Config = New-BackupConfig
+$Config.Files += 'C:\temp\BackupFile1.dat'
+$Config.Files += 'C:\temp\BackupFile2.dat'
+Invoke-Backup $Config
 #>
 function Invoke-Backup() {
     Param (
@@ -27,6 +35,11 @@ function Invoke-Backup() {
             Write-Host "Copied file: $File"
         }
         
+        foreach ($Directory in $Config.Directories) {
+            Copy-Item -Path:$Directory -Destination:$TempFolder -Recurse
+            Write-Host "Copied directory: $Directory"
+        }
+        
         # create archive
         if (-not (Test-Path $global:PsBackupSettings.BackupFolder)) {
             New-Item -ItemType:Directory -Path:$global:PsBackupSettings.BackupFolder | Out-Null
@@ -38,7 +51,7 @@ function Invoke-Backup() {
         Write-Host "Created zip: $ArchivePath"
         
         # clean up
-        Remove-Item $TempFolder -Recurse
+        Remove-Item $TempFolder -Recurse -ErrorAction:SilentlyContinue
         Write-Host "Deleted temp folder: $TempFolder"
     }
 }
